@@ -59,22 +59,13 @@ jobs:
       - name: Code checkout
         uses: actions/checkout@v4
 
-      - name: Build & Push to ECR
-        uses: appleboy/docker-ecr-action@master
-        with:
-          access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          account_id: ${{ secrets.AWS_ACCOUNT_ID }} # Add this
-          registry: ${{ secrets.REGISTRY }} # Should be your-account-id.dkr.ecr.region.amazonaws.com
-          repo: ${{ env.ECR_REPOSITORY }}
-          region: ${{ env.AWS_REGION }}
-          tags: |
-            ${{ github.sha }}
-            ${{ github.run_number }}
-            latest  # Optional - remove if not needed
-          dockerfile: ./Dockerfile
-          context: ./
-          # Consider adding:
-          build_args: | # If you need build arguments
-            ARG1=value1
-            ARG2=value2
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to ECR
+        env:
+          ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+        ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.run_number }} .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.run_number }}
